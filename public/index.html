@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#173a5e" />
+    <title>Mobiro Listings</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">PRODUCT CATALOG</p>
+          <h1>Mobiro Listings</h1>
+          <p class="intro">Import old or new Excel listing files and manage every saved product in one table.</p>
+        </div>
+        <button class="refresh-button" id="refreshButton" type="button">Refresh products</button>
+      </header>
+
+      <section class="import-card" aria-labelledby="import-title">
+        <div>
+          <h2 id="import-title">Import products</h2>
+          <p>Choose a Meesho Excel file or a compatible older listing file. Existing SKUs are updated automatically.</p>
+        </div>
+        <form id="importForm" class="import-form">
+          <label class="file-picker" for="spreadsheet">
+            <input id="spreadsheet" name="file" type="file" accept=".xlsx,.xls,.csv" required />
+            <span id="fileName">Choose Excel or CSV file</span>
+          </label>
+          <button id="importButton" type="submit">Import file</button>
+        </form>
+        <div id="importResult" class="import-result" aria-live="polite"></div>
+      </section>
+
+      <section class="catalog-card" aria-labelledby="catalog-title">
+        <div class="catalog-header">
+          <div>
+            <h2 id="catalog-title">All products</h2>
+            <p id="catalogSummary">Loading products…</p>
+          </div>
+          <label class="search-field">
+            <span class="sr-only">Search products</span>
+            <input id="searchInput" type="search" placeholder="Search name, SKU, model…" />
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Image</th><th>Product</th><th>SKU</th><th>Model</th><th>Price</th><th>MRP</th><th>Stock</th><th>Group</th><th>Imported</th>
+              </tr>
+            </thead>
+            <tbody id="productRows"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <p id="visibleCount"></p>
+          <div id="pagination" class="pagination"></div>
+        </div>
+      </section>
+    </main>
+    <template id="emptyState"><tr><td colspan="9" class="empty">No products found. Import a listing file to get started.</td></tr></template>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

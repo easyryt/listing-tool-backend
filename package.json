@@ -1,0 +1,19 @@
+{
+  "name": "listing-tool-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "dev": "node --watch src/index.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.9.2",
+    "multer": "^2.2.0",
+    "xlsx": "^0.18.5"
+  }
+}
