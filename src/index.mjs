@@ -151,6 +151,10 @@ app.get(
           ? "connected"
           : "disconnected",
 
+      databaseName:
+        mongoose.connection.name ||
+        null,
+
       uptime:
         process.uptime(),
 

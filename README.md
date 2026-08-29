@@ -30,9 +30,26 @@ Add these Render environment variables:
 | Key | Value |
 | --- | --- |
 | `MONGODB_URI` | Your complete MongoDB Atlas connection string, with the real password |
+| `MONGODB_DB_NAME` | Database name. Use `listing_tool` (the application default). |
 | `CLIENT_ORIGIN` | Not required. The API currently uses public wildcard CORS. |
 
 Render provides `PORT` automatically. Do not add a real `.env` file to Git.
+
+## Move data out of the default `test` database
+
+When `MONGODB_URI` does not contain a database name, MongoDB uses `test`.
+This project now explicitly uses `listing_tool`. Before deploying this change,
+copy the existing collections with the included non-destructive migration:
+
+```bash
+npm run db:migrate
+npm run db:migrate -- --apply
+```
+
+The first command only displays source and target counts. The second copies
+documents and indexes, verifies every collection count, and leaves `test`
+untouched as a rollback copy. Set `MONGODB_SOURCE_DB_NAME` only if the old
+database is not `test`.
 
 After deployment, use `https://your-render-service.onrender.com/api` as the API base URL. Add that value to Vercel as `NEXT_PUBLIC_API_URL` when connecting the frontend.
 
