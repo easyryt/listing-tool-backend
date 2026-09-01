@@ -154,12 +154,90 @@ test("maps only populated spreadsheet cells", () => {
   assert.equal(mapped.data.category, "Mobile Cases & Covers");
   assert.equal(mapped.data.manufacturer, "Mobiro");
   assert.equal(mapped.data.brand, "Mobiro");
-  assert.equal(mapped.data.wrongDefectiveReturnsPrice, 112);
+  assert.equal(mapped.data.wrongDefectiveReturnsPrice, 1);
   assert.equal(mapped.data.styleId, mapped.data.sku);
   assert.equal(Object.hasOwn(mapped.data, "description"), false);
   assert.equal(Object.hasOwn(mapped.data, "designName"), false);
   assert.equal(mapped.clearFields.includes("description"), true);
   assert.equal(mapped.clearFields.includes("designName"), true);
+});
+
+test("keeps a current direct return discount under the legacy heading", () => {
+  const mapped = mapImportRow(
+    listingRow({
+      price: "191",
+      wrongDefectiveReturnsPrice: "2",
+    }),
+    HEADERS,
+    5,
+  );
+
+  assert.equal(mapped.data.wrongDefectiveReturnsPrice, 2);
+});
+
+test("imports the current return discount heading directly", () => {
+  const headers = [
+    "Product Name",
+    "Meesho Price",
+    "SKU ID",
+    "Wrong/Defective Return Discount(₹)",
+  ];
+  const mapped = mapImportRow(
+    [
+      "Current cover",
+      "191",
+      "MBRO-MC-AP-IP11-UVV-CUTPNRBCT-WL-TRNSPT-268.1.V1",
+      "2",
+    ],
+    headers,
+    5,
+  );
+
+  assert.equal(mapped.data.wrongDefectiveReturnsPrice, 2);
+});
+
+test("uses the default discount when the return value is blank", () => {
+  const mapped = mapImportRow(
+    listingRow({ wrongDefectiveReturnsPrice: "" }),
+    HEADERS,
+    5,
+  );
+
+  assert.equal(mapped.data.wrongDefectiveReturnsPrice, 2);
+  assert.equal(
+    mapped.clearFields.includes("wrongDefectiveReturnsPrice"),
+    false,
+  );
+});
+
+test("rejects an invalid legacy return price difference", () => {
+  assert.throws(
+    () =>
+      mapImportRow(
+        listingRow({
+          price: "113",
+          wrongDefectiveReturnsPrice: "80",
+        }),
+        HEADERS,
+        5,
+      ),
+    /discount must be between ₹0 and ₹30/i,
+  );
+});
+
+test("rejects a legacy return price above the Meesho price", () => {
+  assert.throws(
+    () =>
+      mapImportRow(
+        listingRow({
+          price: "113",
+          wrongDefectiveReturnsPrice: "114",
+        }),
+        HEADERS,
+        5,
+      ),
+    /cannot be greater than Meesho Price/i,
+  );
 });
 
 test("preserves a workbook model containing a comma as one exact option", () => {

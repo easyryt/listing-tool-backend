@@ -38,10 +38,6 @@ const STRING_COLUMNS = [
 
 const NUMBER_COLUMNS = [
   ["price", ["meesho price", "price"]],
-  [
-    "wrongDefectiveReturnsPrice",
-    ["wrong/defective returns price", "wrong defective returns price"],
-  ],
   ["mrp", ["mrp"]],
   ["gst", ["gst %", "gst"]],
   ["weight", ["net weight (gms)", "weight"]],
@@ -50,6 +46,26 @@ const NUMBER_COLUMNS = [
   ["length", ["product length (cm)", "length"]],
   ["width", ["product width(cm)", "product width (cm)", "width"]],
 ];
+
+const WRONG_DEFECTIVE_RETURN_PRICE_COLUMNS = [
+  "wrong/defective returns price",
+  "wrong defective returns price",
+  "wrong/defective return price",
+  "wrong defective return price",
+];
+
+const WRONG_DEFECTIVE_RETURN_DISCOUNT_COLUMNS = [
+  "wrong/defective return discount",
+  "wrong defective return discount",
+  "wrong/defective returns discount",
+  "wrong defective returns discount",
+  "wrong/defective return discount(₹)",
+  "wrong defective return discount(₹)",
+  "wrong/defective returns discount(₹)",
+  "wrong defective returns discount(₹)",
+];
+
+const DEFAULT_WRONG_DEFECTIVE_RETURN_DISCOUNT = 2;
 
 export function cleanImportHeader(value) {
   return String(value ?? "")
@@ -110,6 +126,81 @@ function importNumber(row, headers, names) {
   }
 
   return value;
+}
+
+function validateWrongDefectiveReturnDiscount(value) {
+  if (value > 30) {
+    throw new Error(
+      "Wrong/Defective Return Discount must be between ₹0 and ₹30.",
+    );
+  }
+
+  return value;
+}
+
+function importWrongDefectiveReturnDiscount(row, headers, meeshoPrice) {
+  const hasDiscountColumn =
+    findImportColumn(headers, WRONG_DEFECTIVE_RETURN_DISCOUNT_COLUMNS) >= 0;
+  const hasLegacyPriceColumn =
+    findImportColumn(headers, WRONG_DEFECTIVE_RETURN_PRICE_COLUMNS) >= 0;
+
+  if (!hasDiscountColumn && !hasLegacyPriceColumn) {
+    return { hasColumn: false };
+  }
+
+  if (hasDiscountColumn) {
+    const discount = importNumber(
+      row,
+      headers,
+      WRONG_DEFECTIVE_RETURN_DISCOUNT_COLUMNS,
+    );
+
+    if (discount !== undefined) {
+      return {
+        hasColumn: true,
+        value: validateWrongDefectiveReturnDiscount(discount),
+      };
+    }
+  }
+
+  if (hasLegacyPriceColumn) {
+    const returnPrice = importNumber(
+      row,
+      headers,
+      WRONG_DEFECTIVE_RETURN_PRICE_COLUMNS,
+    );
+
+    if (returnPrice !== undefined) {
+      // Recent exports used the legacy header while already writing a discount.
+      if (returnPrice <= 30) {
+        return { hasColumn: true, value: returnPrice };
+      }
+
+      if (meeshoPrice === undefined) {
+        throw new Error(
+          "Meesho Price is required to calculate the Wrong/Defective Return Discount.",
+        );
+      }
+
+      const discount = Math.round((meeshoPrice - returnPrice) * 100) / 100;
+
+      if (discount < 0) {
+        throw new Error(
+          "Wrong/Defective Returns Price cannot be greater than Meesho Price.",
+        );
+      }
+
+      return {
+        hasColumn: true,
+        value: validateWrongDefectiveReturnDiscount(discount),
+      };
+    }
+  }
+
+  return {
+    hasColumn: true,
+    value: DEFAULT_WRONG_DEFECTIVE_RETURN_DISCOUNT,
+  };
 }
 
 export function parseListingSku(value) {
@@ -230,6 +321,20 @@ export function mapImportRow(row, headers, rowNumber) {
       data[field] = value;
     } else {
       clearFields.push(field);
+    }
+  }
+
+  const returnDiscount = importWrongDefectiveReturnDiscount(
+    row,
+    headers,
+    data.price,
+  );
+
+  if (returnDiscount.hasColumn) {
+    if (returnDiscount.value !== undefined) {
+      data.wrongDefectiveReturnsPrice = returnDiscount.value;
+    } else {
+      clearFields.push("wrongDefectiveReturnsPrice");
     }
   }
 

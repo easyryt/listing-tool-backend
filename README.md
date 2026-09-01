@@ -92,9 +92,12 @@ Number. For a SKU such as
 `MBRO-MC-AP-IP11-UVV-CUTPNRBCT-WL-TRNSPT-268.1.V1`, the importer stores
 `UVV` as Print Type, `CUTPNRBCT` as Design Code, and `WL` as Finish. It also
 copies Generic Name to Category and Manufacturer Name to Brand. Every
-populated product field is imported, including Wrong/Defective Returns Price
-and Product ID / Style ID; Meesho's system-only error columns are ignored.
-Other blank cells remain blank instead of receiving generated values.
+populated product field is imported, including Product ID / Style ID;
+Meesho's system-only error columns are ignored. A legacy Wrong/Defective
+Returns Price is converted to the stored discount by subtracting it from the
+Meesho Price, while current discount columns and legacy app exports containing
+a direct ₹0–₹30 discount are accepted unchanged. A blank return value defaults
+to ₹2. Other blank cells remain blank instead of receiving generated values.
 
 The same upload endpoint accepts a workbook containing a `design name` sheet.
 Each row's SKU family is parsed into a Design Code and stored as a reusable
