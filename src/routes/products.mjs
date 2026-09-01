@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import Product from "../models/Product.mjs";
 import Charm from "../models/Charm.mjs";
 import Design from "../models/Design.mjs";
+import { applyCharmCreationDefaults } from "../services/charm-creation.mjs";
 import {
   organizeImportGroups,
   parseWorkbookDesignReferences,
@@ -3290,8 +3291,7 @@ router.post(
       }
 
       const data = normalizeProductData({
-        ...generatedData,
-        ...overrides,
+        ...applyCharmCreationDefaults(generatedData, overrides),
         designNumber: root.designNumber,
       });
       data.sku = withCharmSku(data.sku);
