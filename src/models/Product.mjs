@@ -95,8 +95,9 @@ const productSchema = new mongoose.Schema(
 
     wrongDefectiveReturnsPrice: {
       type: Number,
-      default: undefined,
+      default: 2,
       min: 0,
+      max: 30,
     },
 
     mrp: {

@@ -491,8 +491,13 @@ function withCharmSku(sku) {
       .trim()
       .toUpperCase();
 
-  if (!originalSku || /\bWITH[\s-]+CHRM(?:S)?\b/i.test(originalSku)) {
+  if (!originalSku) {
     return originalSku;
+  }
+
+  const charmMarker = /\bWITH[\s-]+(?:CHARMS?|CHRMS?)\b/i;
+  if (charmMarker.test(originalSku)) {
+    return originalSku.replace(charmMarker, "WITH CHARMS");
   }
 
   /*
@@ -500,7 +505,7 @@ function withCharmSku(sku) {
   | Put the charm marker immediately before the ending design/version part.
   |
   | MC-AP-IP13-UVV-APF-WL-TRNSPT-117.1.V1
-  | MC-AP-IP13-UVV-APF-WL-TRNSPT-WITH CHRM-117.1.V1
+  | MC-AP-IP13-UVV-APF-WL-TRNSPT-WITH CHARMS-117.1.V1
   |--------------------------------------------------------------------------
   */
 
@@ -515,14 +520,14 @@ function withCharmSku(sku) {
         0,
         versionMatch.index,
       )
-    }-WITH CHRM${
+    }-WITH CHARMS${
       originalSku.slice(
         versionMatch.index,
       )
     }`;
   }
 
-  return `${originalSku}-WITH CHRM`;
+  return `${originalSku}-WITH CHARMS`;
 }
 
 /*
@@ -3211,6 +3216,13 @@ router.patch(
       delete update.variantNumber;
       delete update.variantType;
 
+      if (Object.hasOwn(update, "sku")) {
+        update.sku = withCharmSku(update.sku);
+        update.styleId = update.sku;
+      } else {
+        delete update.styleId;
+      }
+
       const charm = await Charm.findOneAndUpdate(
         {
           _id: request.params.charmId,
@@ -3258,12 +3270,14 @@ router.post(
         : source;
       if (!root) throw notFound("Parent product not found.");
 
+      const generatedSku = withCharmSku(source.sku);
       const generatedData = {
         ...productData(serializeProduct(source)),
         designNumber: root.designNumber,
         designName: withCharmDesignName(source.designName),
         productName: withCharmProductName(source.productName),
-        sku: withCharmSku(source.sku),
+        sku: generatedSku,
+        styleId: generatedSku,
       };
 
       const overrides = productData(request.body);
@@ -3280,6 +3294,8 @@ router.post(
         ...overrides,
         designNumber: root.designNumber,
       });
+      data.sku = withCharmSku(data.sku);
+      data.styleId = data.sku;
 
       delete data.parentId;
       delete data.variantNumber;

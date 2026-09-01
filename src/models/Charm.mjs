@@ -29,6 +29,7 @@ charmSchema.clearIndexes();
 charmSchema.index({ createdAt: -1 });
 charmSchema.index({ designNumber: 1 });
 charmSchema.index({ sourceProductId: 1 });
+charmSchema.index({ "models.model": 1, createdAt: -1 });
 charmSchema.index({ sku: 1 }, { unique: true, sparse: true, name: "unique_charm_sku" });
 
 const Charm = mongoose.models.Charm || mongoose.model("Charm", charmSchema, "charms");

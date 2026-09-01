@@ -16,6 +16,21 @@ const FIELDS = [
 const isId = (id) => mongoose.isObjectIdOrHexString(id);
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 
+function normalizeCharmSku(value) {
+  const sku = String(value ?? "").trim().toUpperCase();
+  if (!sku) return sku;
+
+  const charmMarker = /\bWITH[\s-]+(?:CHARMS?|CHRMS?)\b/i;
+  if (charmMarker.test(sku)) {
+    return sku.replace(charmMarker, "WITH CHARMS");
+  }
+
+  const versionMatch = sku.match(/-(\d+(?:\.\d+)*\.V\d+)$/i);
+  return versionMatch?.index !== undefined
+    ? `${sku.slice(0, versionMatch.index)}-WITH CHARMS${sku.slice(versionMatch.index)}`
+    : `${sku}-WITH CHARMS`;
+}
+
 function pick(body = {}) {
   return Object.fromEntries(FIELDS.filter((field) => Object.hasOwn(body, field)).map((field) => [field, body[field]]));
 }
@@ -26,7 +41,12 @@ function clean(data) {
     if (result[field] !== undefined && result[field] !== null) result[field] = String(result[field]).trim();
   }
   if (result.designCode) result.designCode = result.designCode.toUpperCase();
-  if (result.sku) result.sku = result.sku.toUpperCase();
+  if (Object.hasOwn(result, "sku")) {
+    result.sku = normalizeCharmSku(result.sku);
+    result.styleId = result.sku;
+  } else {
+    delete result.styleId;
+  }
   return result;
 }
 
@@ -54,11 +74,44 @@ router.post("/", async (request, response, next) => {
   } catch (error) { next(error); }
 });
 
+router.get("/models", async (_request, response, next) => {
+  try {
+    const models = await Charm.aggregate([
+      { $unwind: "$models" },
+      {
+        $project: {
+          model: { $trim: { input: { $ifNull: ["$models.model", ""] } } },
+        },
+      },
+      { $match: { model: { $ne: "" } } },
+      { $group: { _id: "$model", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    response.json({
+      success: true,
+      count: models.length,
+      models: models.map((item) => ({ name: item._id, count: item.count })),
+    });
+  } catch (error) { next(error); }
+});
+
 router.get("/", async (request, response, next) => {
   try {
-    const filter = request.query.designNumber ? { designNumber: String(request.query.designNumber).trim() } : {};
+    const filter = {};
+    if (request.query.designNumber) {
+      filter.designNumber = String(request.query.designNumber).trim();
+    }
+    if (request.query.model) {
+      filter["models.model"] = String(request.query.model).trim();
+    }
     const charms = await Charm.find(filter).sort({ createdAt: -1 }).lean();
-    response.json({ success: true, count: charms.length, charms: charms.map(serialize) });
+    response.json({
+      success: true,
+      model: request.query.model ? String(request.query.model).trim() : undefined,
+      count: charms.length,
+      charms: charms.map(serialize),
+    });
   } catch (error) { next(error); }
 });
 
